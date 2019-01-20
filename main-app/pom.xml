@@ -1,0 +1,63 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.konstpan</groupId>
+	<artifactId>main-app</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>war</packaging>
+	
+	<properties>
+		<mainapp.mongodb.host>replaced-mainapp-server</mainapp.mongodb.host>
+		<mainapp.mongodb.username>replaced-mainapp-username</mainapp.mongodb.username>
+		<mainapp.mongodb.password>replaced-mainapp-password</mainapp.mongodb.password>
+	</properties>
+	
+	<dependencies>
+		<dependency>
+			<groupId>com.konstpan</groupId>
+			<artifactId>mongodb-jpa</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-war-plugin</artifactId>
+				<configuration>
+					<!-- Java EE 7 doesn't require web.xml, Maven needs to catch up! -->
+					<failOnMissingWebXml>false</failOnMissingWebXml>
+				</configuration>
+			</plugin>
+			
+			<!-- modify common archive with our own application properties -->
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.7</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<configuration>
+							<target>
+								<!-- 1. unzip common archive -->
+								<unzip src="${project.build.directory}/${project.build.finalName}/WEB-INF/lib/mongodb-jpa-${project.version}.jar" dest="${project.build.directory}/temp" />
+								<!-- 2. replace placeholder values -->
+								<replace file="${project.build.directory}/temp/META-INF/persistence.xml" token="@mongodb.host@" value="${mainapp.mongodb.host}" />
+								<replace file="${project.build.directory}/temp/META-INF/persistence.xml" token="@mongodb.username@" value="${mainapp.mongodb.username}" />
+								<replace file="${project.build.directory}/temp/META-INF/persistence.xml" token="@mongodb.password@" value="${mainapp.mongodb.password}" />
+								<!-- 3. create archive file along with modified file  -->
+								<zip destfile="${project.build.directory}/temp/mongodb-jpa-${project.version}.jar" basedir="${project.build.directory}/temp" />
+								<!-- 4. update archive file in war deployment -->
+								<zip destfile="${project.build.directory}/${project.build.finalName}.war" update="true">
+									<zipfileset dir="${project.build.directory}/temp" includes="mongodb-jpa-${project.version}.jar" prefix="WEB-INF/lib/" />
+								</zip>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
